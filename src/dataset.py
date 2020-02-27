@@ -80,7 +80,7 @@ class Dataset(torch.utils.data.Dataset):
         # mask = mask[:, ::-1, ...]
 
         #return self.to_tensor(img), self.to_tensor(img_gray), self.to_tensor(edge), self.to_tensor(mask)
-        return self.transform(img), self.transform(img_gray), self.transform(edge), self.transform(mask)
+        return self.transform(Image.fromarray(img)), self.transform(Image.fromarray(img_gray)), self.transform(Image.fromarray(edge)), self.transform(Image.fromarray(mask))
 
     def load_edge(self, img, index, mask):
         sigma = self.sigma
