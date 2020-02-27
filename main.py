@@ -20,7 +20,7 @@ def main(mode=None):
 
 
     # cuda visble devices
-    os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in config.GPU)
+    #os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in config.GPU)
 
 
     # init device
@@ -37,11 +37,11 @@ def main(mode=None):
 
 
     # initialize random seed
+    config.SEED = np.random.randint(1, 100)
     torch.manual_seed(config.SEED)
     torch.cuda.manual_seed_all(config.SEED)
     np.random.seed(config.SEED)
     random.seed(config.SEED)
-
 
 
     # build the model and initialize
@@ -61,9 +61,10 @@ def main(mode=None):
         model.test()
 
     # eval mode
-    else:
+    elif config.MODE ==3 :
         print('\nstart eval...\n')
         model.eval()
+
 
 
 def load_config(mode=None):
@@ -126,6 +127,7 @@ def load_config(mode=None):
     elif mode == 3:
         config.MODE = 3
         config.MODEL = args.model if args.model is not None else 3
+
 
     return config
 

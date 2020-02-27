@@ -6,6 +6,7 @@ from .dataset import Dataset
 from .models import EdgeModel, InpaintingModel
 from .utils import Progbar, create_dir, stitch_images, imsave
 from .metrics import PSNR, EdgeAccuracy
+from torchvision import transforms
 
 
 class EdgeConnect():
@@ -29,12 +30,22 @@ class EdgeConnect():
         self.psnr = PSNR(255.0).to(config.DEVICE)
         self.edgeacc = EdgeAccuracy(config.EDGE_THRESHOLD).to(config.DEVICE)
 
+        self.transforms = {'train': transforms.Compose([
+            transforms.Resize(256),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor()
+        ]),
+                           'test': transforms.Compose([
+                               transforms.Resize(256),
+                               transforms.ToTensor()
+                           ])}
+
         # test mode
         if self.config.MODE == 2:
-            self.test_dataset = Dataset(config, config.TEST_FLIST, config.TEST_EDGE_FLIST, config.TEST_MASK_FLIST, augment=False, training=False)
+            self.test_dataset = Dataset(config, config.TEST_FLIST, config.TEST_EDGE_FLIST, config.TEST_MASK_FLIST, augment=False, training=False,transform = self.transforms['test'])
         else:
-            self.train_dataset = Dataset(config, config.TRAIN_FLIST, config.TRAIN_EDGE_FLIST, config.TRAIN_MASK_FLIST, augment=True, training=True)
-            self.val_dataset = Dataset(config, config.VAL_FLIST, config.VAL_EDGE_FLIST, config.VAL_MASK_FLIST, augment=False, training=True)
+            self.train_dataset = Dataset(config, config.TRAIN_FLIST, config.TRAIN_EDGE_FLIST, config.TRAIN_MASK_FLIST, augment=True, training=True,transform = self.transforms['train'])
+            self.val_dataset = Dataset(config, config.VAL_FLIST, config.VAL_EDGE_FLIST, config.VAL_MASK_FLIST, augment=False, training=True,transform = self.transforms['test'])
             self.sample_iterator = self.val_dataset.create_iterator(config.SAMPLE_SIZE)
 
         self.samples_path = os.path.join(config.PATH, 'samples')
@@ -403,7 +414,7 @@ class EdgeConnect():
 
     def log(self, logs):
         with open(self.log_file, 'a') as f:
-            f.write('%s\n' % ' '.join([str(item[1]) for item in logs]))
+            f.write('%s\n' % ' '.join([str(item[0])+ ' '+str(item[1]) for item in logs]))
 
     def cuda(self, *args):
         return (item.to(self.config.DEVICE) for item in args)
@@ -413,3 +424,5 @@ class EdgeConnect():
         img = img * 255.0
         img = img.permute(0, 2, 3, 1)
         return img.int()
+
+
