@@ -26,6 +26,7 @@ class Dataset(torch.utils.data.Dataset):
         self.edge = config.EDGE
         self.mask = config.MASK
         self.nms = config.NMS
+        self.transform = transform
 
         # in test mode, there's a one-to-one relationship between mask and image
         # masks are loaded non random
