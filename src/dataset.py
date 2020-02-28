@@ -13,13 +13,15 @@ from .utils import create_mask
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, config, flist, edge_flist, mask_flist, augment=True, training=True, transform = None):
+    def __init__(self, config, flist, edge_flist, mask_flist,zigbang_mask_flist, augment=True, training=True, transform = None):
         super(Dataset, self).__init__()
         self.augment = augment
         self.training = training
         self.data = self.load_flist(flist)
         self.edge_data = self.load_flist(edge_flist)
         self.mask_data = self.load_flist(mask_flist)
+        self.zigbang_mask_data = self.load_flist(zigbang_mask_flist)
+        self.zigbang_mask_data = {os.path.splitext(os.path.split(f)[1])[0]: f for f in self.zigbang_mask_data} if len(self.zigbang_mask_data) >0 else {}
 
         self.input_size = config.INPUT_SIZE
         self.sigma = config.SIGMA
@@ -117,6 +119,18 @@ class Dataset(torch.utils.data.Dataset):
         imgh, imgw = img.shape[0:2]
         mask_type = self.mask
 
+        name = os.path.splitext(os.path.split(self.data[index])[1])[0]
+
+        # pre masked mode + external + random block:
+        if mask_type == 7:
+            # exist pretrained mask
+            if name in self.zigbang_mask_data:
+                print('exists')
+                return np.array(Image.open(self.zigbang_mask_data[name]))
+            mask_type = 4
+
+
+
 
         # external + random block
         if mask_type == 4:
@@ -125,6 +139,8 @@ class Dataset(torch.utils.data.Dataset):
         # external + random block + half
         elif mask_type == 5:
             mask_type = np.random.randint(1, 4)
+
+
 
         # random block
         if mask_type == 1:
@@ -139,17 +155,19 @@ class Dataset(torch.utils.data.Dataset):
         if mask_type == 3:
             mask_index = random.randint(0, len(self.mask_data) - 1)
             mask = np.array(Image.open(self.mask_data[mask_index]))
-            mask = self.resize(mask, imgh, imgw)
+            # mask = self.resize(mask, imgh, imgw)
             mask = (mask > 0).astype(np.uint8) * 255       # threshold due to interpolation
             return mask
 
         # test mode: load mask non random
         if mask_type == 6:
             mask = np.array(Image.open(self.mask_data[index]))
-            mask = self.resize(mask, imgh, imgw, centerCrop=False)
+            # mask = self.resize(mask, imgh, imgw, centerCrop=False)
             mask = rgb2gray(mask)
             mask = (mask > 0).astype(np.uint8) * 255
             return mask
+
+
 
     def to_tensor(self, img):
         img = Image.fromarray(img)
@@ -185,7 +203,7 @@ class Dataset(torch.utils.data.Dataset):
                 try:
                     return np.genfromtxt(flist, dtype=np.str, encoding='utf-8')
                 except:
-                    return [flist]
+                    return []
 
         return []
 

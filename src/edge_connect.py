@@ -40,12 +40,16 @@ class EdgeConnect():
                                transforms.ToTensor()
                            ])}
 
+
         # test mode
         if self.config.MODE == 2:
-            self.test_dataset = Dataset(config, config.TEST_FLIST, config.TEST_EDGE_FLIST, config.TEST_MASK_FLIST, augment=False, training=False,transform = self.transforms['test'])
+            self.test_dataset = Dataset(config, config.TEST_FLIST, config.TEST_EDGE_FLIST, config.TEST_MASK_FLIST,
+                                        config.ZIGBANG_TEST_MASK_FLIST, augment=False, training=False,transform = self.transforms['test'])
         else:
-            self.train_dataset = Dataset(config, config.TRAIN_FLIST, config.TRAIN_EDGE_FLIST, config.TRAIN_MASK_FLIST, augment=True, training=True,transform = self.transforms['train'])
-            self.val_dataset = Dataset(config, config.VAL_FLIST, config.VAL_EDGE_FLIST, config.VAL_MASK_FLIST, augment=False, training=True,transform = self.transforms['test'])
+            self.train_dataset = Dataset(config, config.TRAIN_FLIST, config.TRAIN_EDGE_FLIST, config.TRAIN_MASK_FLIST,
+                                         config.ZIGBANG_TRAIN_MASK_FLIST, augment=True, training=True,transform = self.transforms['train'])
+            self.val_dataset = Dataset(config, config.VAL_FLIST, config.VAL_EDGE_FLIST, config.VAL_MASK_FLIST,
+                                       config.ZIGBANG_VAL_MASK_FLIST, augment=False, training=True,transform = self.transforms['test'])
             self.sample_iterator = self.val_dataset.create_iterator(config.SAMPLE_SIZE)
 
         self.samples_path = os.path.join(config.PATH, 'samples')
