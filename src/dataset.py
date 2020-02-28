@@ -125,7 +125,7 @@ class Dataset(torch.utils.data.Dataset):
         if mask_type == 7:
             # exist pretrained mask
             if name in self.zigbang_mask_data:
-                print('exists')
+                #print('exists')
                 return np.array(Image.open(self.zigbang_mask_data[name]))
             mask_type = 4
 

@@ -16,40 +16,53 @@ class BaseModel(nn.Module):
 
         self.gen_weights_path = os.path.join(config.PATH, name + '_gen.pth')
         self.dis_weights_path = os.path.join(config.PATH, name + '_dis.pth')
+        self.checkpoint_dir =  os.path.join(self.config.PATH,'cp')
+        if not os.path.exists(self.checkpoint_dir):
+            os.makedirs(self.checkpoint_dir)
+
 
     def load(self):
-        if os.path.exists(self.gen_weights_path):
-            print('Loading %s generator...' % self.name)
+        checkpoint_gen = self.last_checkpoint('_gen.pth')
+        checkpoint_dis = self.last_checkpoint('_dis.pth')
+        if len(checkpoint_gen) > 0:
+            print('Loading %s generator...' % checkpoint_gen[0])
 
             if torch.cuda.is_available():
-                data = torch.load(self.gen_weights_path)
+                data = torch.load(checkpoint_gen[0])
             else:
-                data = torch.load(self.gen_weights_path, map_location=lambda storage, loc: storage)
+                data = torch.load(checkpoint_gen[0], map_location=lambda storage, loc: storage)
 
             self.generator.load_state_dict(data['generator'])
             self.iteration = data['iteration']
 
         # load discriminator only when training
-        if self.config.MODE == 1 and os.path.exists(self.dis_weights_path):
-            print('Loading %s discriminator...' % self.name)
+        if self.config.MODE == 1 and len(checkpoint_dis) > 0:
+            print('Loading %s discriminator...' % checkpoint_dis[0])
 
             if torch.cuda.is_available():
-                data = torch.load(self.dis_weights_path)
+                data = torch.load(checkpoint_dis[0])
             else:
-                data = torch.load(self.dis_weights_path, map_location=lambda storage, loc: storage)
+                data = torch.load(checkpoint_dis[0], map_location=lambda storage, loc: storage)
 
             self.discriminator.load_state_dict(data['discriminator'])
 
-    def save(self):
+    def save(self,*args):
         print('\nsaving %s...\n' % self.name)
         torch.save({
             'iteration': self.iteration,
             'generator': self.generator.state_dict()
-        }, self.gen_weights_path)
+        }, self.filename(*args)+'_gen.pth')
 
         torch.save({
             'discriminator': self.discriminator.state_dict()
-        }, self.dis_weights_path)
+        }, self.filename(*args) + '_dis.pth' )
+    def filename(self, *args):
+        return os.path.join(self.checkpoint_dir,'{}_{}_{}_{}'.format(self.name,self.iteration, *args))
+    def last_checkpoint(self,suffix):
+        return [os.path.join(self.checkpoint_dir,f) for f in sorted([f for f in os.listdir(self.checkpoint_dir) if f.startswith(self.name) and f.endswith(suffix)],key=lambda file: int(file.split('_')[1]),reverse=True)]
+
+
+
 
 
 class EdgeModel(BaseModel):
@@ -148,6 +161,8 @@ class EdgeModel(BaseModel):
         if gen_loss is not None:
             gen_loss.backward()
         self.gen_optimizer.step()
+    def save(self, precision, recall, **kwargs):
+        super().save(precision,recall)
 
 
 class InpaintingModel(BaseModel):
@@ -258,3 +273,5 @@ class InpaintingModel(BaseModel):
 
         gen_loss.backward()
         self.gen_optimizer.step()
+    def save(self, psnr, mae,**kwargs):
+        super().save(psnr,mae)

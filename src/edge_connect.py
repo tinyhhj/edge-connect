@@ -7,6 +7,7 @@ from .models import EdgeModel, InpaintingModel
 from .utils import Progbar, create_dir, stitch_images, imsave
 from .metrics import PSNR, EdgeAccuracy
 from torchvision import transforms
+from collections import OrderedDict
 
 
 class EdgeConnect():
@@ -54,6 +55,7 @@ class EdgeConnect():
 
         self.samples_path = os.path.join(config.PATH, 'samples')
         self.results_path = os.path.join(config.PATH, 'results')
+        self.checkpoints_path = os.path.join(config.PATH, 'cp')
 
         if config.RESULTS is not None:
             self.results_path = os.path.join(config.RESULTS)
@@ -74,12 +76,12 @@ class EdgeConnect():
             self.edge_model.load()
             self.inpaint_model.load()
 
-    def save(self):
+    def save(self,**kwargs):
         if self.config.MODEL == 1:
-            self.edge_model.save()
+            self.edge_model.save(**kwargs)
 
         elif self.config.MODEL == 2 or self.config.MODEL == 3:
-            self.inpaint_model.save()
+            self.inpaint_model.save(**kwargs)
 
         else:
             self.edge_model.save()
@@ -221,7 +223,7 @@ class EdgeConnect():
 
                 # save model at checkpoints
                 if self.config.SAVE_INTERVAL and iteration % self.config.SAVE_INTERVAL == 0:
-                    self.save()
+                    self.save(**OrderedDict(logs))
 
         print('\nEnd training....')
 
