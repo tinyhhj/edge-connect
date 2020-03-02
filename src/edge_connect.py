@@ -230,7 +230,7 @@ class EdgeConnect():
     def eval(self,logs):
         # split
         if self.config.EVAL_DATA_SIZE:
-            self.val_dataset = torch.utils.data.random_split(self.val_dataset, [self.config.EVAL_DATA_SIZE, len(self.val_dataset) - self.config.EVAL_DATA_SIZE])
+            self.val_dataset,_ = torch.utils.data.random_split(self.val_dataset, [self.config.EVAL_DATA_SIZE, len(self.val_dataset) - self.config.EVAL_DATA_SIZE])
         val_loader = DataLoader(
             dataset=self.val_dataset,
             batch_size=self.config.BATCH_SIZE,
