@@ -62,7 +62,7 @@ class Dataset(torch.utils.data.Dataset):
         if len(img.shape) < 3:
             img = gray2rgb(img)
 
-        # resize/crop if needed
+        # # resize/crop if needed
         # if size != 0:
         #     img = self.resize(img, size, size)
 
@@ -71,6 +71,10 @@ class Dataset(torch.utils.data.Dataset):
 
         # load mask
         mask = self.load_mask(img, index)
+
+        if img_gray.shape[0] != mask.shape[0] or img_gray.shape[1] != mask.shape[1]:
+            img_gray = self.resize(img_gray,256,256)
+            mask = self.resize(mask,256,256)
 
         # load edge
         edge = self.load_edge(img_gray, index, mask)
