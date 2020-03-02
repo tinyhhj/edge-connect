@@ -227,7 +227,7 @@ class EdgeConnect():
 
         print('\nEnd training....')
 
-    def eval(self,logs):
+    def eval(self,g_logs):
         # split
         if self.config.EVAL_DATA_SIZE:
             self.val_dataset,_ = torch.utils.data.random_split(self.val_dataset, [self.config.EVAL_DATA_SIZE, len(self.val_dataset) - self.config.EVAL_DATA_SIZE])
@@ -248,8 +248,14 @@ class EdgeConnect():
         progbar = Progbar(total, width=20, stateful_metrics=['it'])
         iteration = 0
 
+        g_precision = 0
+        g_recall = 0
+        g_psnr = 0
+        g_mae = 0
+
         for items in val_loader:
             iteration += 1
+            logs = []
             images, images_gray, edges, masks = self.cuda(*items)
 
             # edge model
@@ -259,6 +265,8 @@ class EdgeConnect():
 
                 # metrics
                 precision, recall = self.edgeacc(edges * masks, outputs * masks)
+                g_precision += precision
+                g_recall += recall
                 logs.append(('eval_precision', precision.item()))
                 logs.append(('eval_recall', recall.item()))
 
@@ -272,6 +280,8 @@ class EdgeConnect():
                 # metrics
                 psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
                 mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
+                g_psnr += psnr
+                g_mae += mae
                 logs.append(('eval_psnr', psnr.item()))
                 logs.append(('eval_mae', mae.item()))
 
@@ -288,6 +298,8 @@ class EdgeConnect():
                 # metrics
                 psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
                 mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
+                g_psnr += psnr
+                g_mae += mae
                 logs.append(('eval_psnr', psnr.item()))
                 logs.append(('eval_mae', mae.item()))
 
@@ -313,6 +325,12 @@ class EdgeConnect():
 
             logs = [("it", iteration), ] + logs
             progbar.add(len(images), values=logs)
+        if model == 1:
+            g_logs.append(('eval_precision', g_precision.item() / iteration))
+            g_logs.append(('eval_recall', g_recall.item()/ iteration))
+        else:
+            g_logs.append(('eval_psnr', g_psnr.item() / iteration))
+            g_logs.append(('eval_mae', g_mae.item() / iteration))
 
     def test(self):
         self.edge_model.eval()
