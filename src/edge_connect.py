@@ -219,7 +219,7 @@ class EdgeConnect():
                 # evaluate model at checkpoints
                 if self.config.EVAL_INTERVAL and iteration % self.config.EVAL_INTERVAL == 0:
                     print('\nstart eval...\n')
-                    self.eval()
+                    self.eval(logs)
 
                 # save model at checkpoints
                 if self.config.SAVE_INTERVAL and iteration % self.config.SAVE_INTERVAL == 0:
@@ -227,7 +227,7 @@ class EdgeConnect():
 
         print('\nEnd training....')
 
-    def eval(self):
+    def eval(self,logs):
         val_loader = DataLoader(
             dataset=self.val_dataset,
             batch_size=self.config.BATCH_SIZE,
@@ -251,25 +251,25 @@ class EdgeConnect():
             # edge model
             if model == 1:
                 # eval
-                outputs, gen_loss, dis_loss, logs = self.edge_model.process(images_gray, edges, masks)
+                outputs, gen_loss, dis_loss, _ = self.edge_model.process(images_gray, edges, masks)
 
                 # metrics
                 precision, recall = self.edgeacc(edges * masks, outputs * masks)
-                logs.append(('precision', precision.item()))
-                logs.append(('recall', recall.item()))
+                logs.append(('eval_precision', precision.item()))
+                logs.append(('eval_recall', recall.item()))
 
 
             # inpaint model
             elif model == 2:
                 # eval
-                outputs, gen_loss, dis_loss, logs = self.inpaint_model.process(images, edges, masks)
+                outputs, gen_loss, dis_loss, _ = self.inpaint_model.process(images, edges, masks)
                 outputs_merged = (outputs * masks) + (images * (1 - masks))
 
                 # metrics
                 psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
                 mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                logs.append(('psnr', psnr.item()))
-                logs.append(('mae', mae.item()))
+                logs.append(('eval_psnr', psnr.item()))
+                logs.append(('eval_mae', mae.item()))
 
 
             # inpaint with edge model
@@ -278,14 +278,14 @@ class EdgeConnect():
                 outputs = self.edge_model(images_gray, edges, masks)
                 outputs = outputs * masks + edges * (1 - masks)
 
-                outputs, gen_loss, dis_loss, logs = self.inpaint_model.process(images, outputs.detach(), masks)
+                outputs, gen_loss, dis_loss, _ = self.inpaint_model.process(images, outputs.detach(), masks)
                 outputs_merged = (outputs * masks) + (images * (1 - masks))
 
                 # metrics
                 psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
                 mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                logs.append(('psnr', psnr.item()))
-                logs.append(('mae', mae.item()))
+                logs.append(('eval_psnr', psnr.item()))
+                logs.append(('eval_mae', mae.item()))
 
 
             # joint model
