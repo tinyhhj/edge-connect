@@ -57,7 +57,7 @@ class BaseModel(nn.Module):
             'discriminator': self.discriminator.state_dict()
         }, self.filename(*args) + '_dis.pth' )
     def filename(self, *args):
-        return os.path.join(self.checkpoint_dir,'{}_{}_{:.4f}_{:.4f}'.format(self.name,self.iteration, *args))
+        return os.path.join(self.checkpoint_dir,'{}_{}_{:.4f}_{:.4f}'.format(self.name, *args))
     def last_checkpoint(self,suffix):
         return [os.path.join(self.checkpoint_dir,f) for f in sorted([f for f in os.listdir(self.checkpoint_dir) if f.startswith(self.name) and f.endswith(suffix)],key=lambda file: int(file.split('_')[1]),reverse=True)]
 
@@ -161,8 +161,8 @@ class EdgeModel(BaseModel):
         if gen_loss is not None:
             gen_loss.backward()
         self.gen_optimizer.step()
-    def save(self, precision, recall, eval_precision,eval_recall,  **kwargs):
-        super().save(eval_precision,eval_recall)
+    def save(self,iter, precision, recall, eval_precision,eval_recall,  **kwargs):
+        super().save(iter,eval_precision,eval_recall)
 
 
 class InpaintingModel(BaseModel):
@@ -273,5 +273,5 @@ class InpaintingModel(BaseModel):
 
         gen_loss.backward()
         self.gen_optimizer.step()
-    def save(self, psnr, mae,eval_psnr,eval_mae,**kwargs):
-        super().save(eval_psnr,eval_mae)
+    def save(self,iter, psnr, mae,eval_psnr,eval_mae,**kwargs):
+        super().save(iter,eval_psnr,eval_mae)
