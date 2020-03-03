@@ -219,7 +219,23 @@ class EdgeConnect():
                 # evaluate model at checkpoints
                 if self.config.EVAL_INTERVAL and iteration % self.config.EVAL_INTERVAL == 0:
                     print('\nstart eval...\n')
-                    self.eval(logs)
+                    size = self.config.BATCH_SIZE
+                    while size >= 1:
+                        try:
+                            #iteration, g_precision, g_recall, g_psnr, g_mae
+                            result = self.eval(logs)
+                            break
+                        except:
+                            size = size // 2
+                    if size < 1:
+                        result[1] = result[2] = result[3] = result[4] = torch.tensor(0)
+                    if model == 1:
+                        logs.append(('eval_precision', result[1].item() / iteration))
+                        logs.append(('eval_recall', result[2].item() / iteration))
+                    else:
+                        logs.append(('eval_psnr', result[3].item() / iteration))
+                        logs.append(('eval_mae', result[4].item() / iteration))
+
 
                 # save model at checkpoints
                 if self.config.SAVE_INTERVAL and iteration % self.config.SAVE_INTERVAL == 0:
@@ -257,81 +273,77 @@ class EdgeConnect():
             iteration += 1
             logs = []
             images, images_gray, edges, masks = self.cuda(*items)
-            try:
-                # edge model
-                if model == 1:
-                    # eval
-                    outputs, gen_loss, dis_loss, _ = self.edge_model.process(images_gray, edges, masks)
 
-                    # metrics
-                    precision, recall = self.edgeacc(edges * masks, outputs * masks)
-                    g_precision += precision
-                    g_recall += recall
-                    logs.append(('eval_precision', precision.item()))
-                    logs.append(('eval_recall', recall.item()))
+            # edge model
+            if model == 1:
+                # eval
+                outputs, gen_loss, dis_loss, _ = self.edge_model.process(images_gray, edges, masks)
 
-
-                # inpaint model
-                elif model == 2:
-                    # eval
-                    outputs, gen_loss, dis_loss, _ = self.inpaint_model.process(images, edges, masks)
-                    outputs_merged = (outputs * masks) + (images * (1 - masks))
-
-                    # metrics
-                    psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
-                    mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                    g_psnr += psnr
-                    g_mae += mae
-                    logs.append(('eval_psnr', psnr.item()))
-                    logs.append(('eval_mae', mae.item()))
+                # metrics
+                precision, recall = self.edgeacc(edges * masks, outputs * masks)
+                g_precision += precision
+                g_recall += recall
+                logs.append(('eval_precision', precision.item()))
+                logs.append(('eval_recall', recall.item()))
 
 
-                # inpaint with edge model
-                elif model == 3:
-                    # eval
-                    outputs = self.edge_model(images_gray, edges, masks)
-                    outputs = outputs * masks + edges * (1 - masks)
+            # inpaint model
+            elif model == 2:
+                # eval
+                outputs, gen_loss, dis_loss, _ = self.inpaint_model.process(images, edges, masks)
+                outputs_merged = (outputs * masks) + (images * (1 - masks))
 
-                    outputs, gen_loss, dis_loss, _ = self.inpaint_model.process(images, outputs.detach(), masks)
-                    outputs_merged = (outputs * masks) + (images * (1 - masks))
-
-                    # metrics
-                    psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
-                    mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                    g_psnr += psnr
-                    g_mae += mae
-                    logs.append(('eval_psnr', psnr.item()))
-                    logs.append(('eval_mae', mae.item()))
+                # metrics
+                psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
+                mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
+                g_psnr += psnr
+                g_mae += mae
+                logs.append(('eval_psnr', psnr.item()))
+                logs.append(('eval_mae', mae.item()))
 
 
-                # joint model
-                else:
-                    # eval
-                    e_outputs, e_gen_loss, e_dis_loss, e_logs = self.edge_model.process(images_gray, edges, masks)
-                    e_outputs = e_outputs * masks + edges * (1 - masks)
-                    i_outputs, i_gen_loss, i_dis_loss, i_logs = self.inpaint_model.process(images, e_outputs, masks)
-                    outputs_merged = (i_outputs * masks) + (images * (1 - masks))
+            # inpaint with edge model
+            elif model == 3:
+                # eval
+                outputs = self.edge_model(images_gray, edges, masks)
+                outputs = outputs * masks + edges * (1 - masks)
 
-                    # metrics
-                    psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
-                    mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                    precision, recall = self.edgeacc(edges * masks, e_outputs * masks)
-                    e_logs.append(('pre', precision.item()))
-                    e_logs.append(('rec', recall.item()))
-                    i_logs.append(('psnr', psnr.item()))
-                    i_logs.append(('mae', mae.item()))
-                    logs = e_logs + i_logs
-            except:
-                iteration -= 1
-                continue
+                outputs, gen_loss, dis_loss, _ = self.inpaint_model.process(images, outputs.detach(), masks)
+                outputs_merged = (outputs * masks) + (images * (1 - masks))
+
+                # metrics
+                psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
+                mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
+                g_psnr += psnr
+                g_mae += mae
+                logs.append(('eval_psnr', psnr.item()))
+                logs.append(('eval_mae', mae.item()))
+
+
+            # joint model
+            else:
+                # eval
+                e_outputs, e_gen_loss, e_dis_loss, e_logs = self.edge_model.process(images_gray, edges, masks)
+                e_outputs = e_outputs * masks + edges * (1 - masks)
+                i_outputs, i_gen_loss, i_dis_loss, i_logs = self.inpaint_model.process(images, e_outputs, masks)
+                outputs_merged = (i_outputs * masks) + (images * (1 - masks))
+
+                # metrics
+                psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
+                mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
+                precision, recall = self.edgeacc(edges * masks, e_outputs * masks)
+                e_logs.append(('pre', precision.item()))
+                e_logs.append(('rec', recall.item()))
+                i_logs.append(('psnr', psnr.item()))
+                i_logs.append(('mae', mae.item()))
+                logs = e_logs + i_logs
+
             logs = [("it", iteration), ] + logs
             progbar.add(len(images), values=logs)
-        if model == 1:
-            g_logs.append(('eval_precision', g_precision.item() / iteration))
-            g_logs.append(('eval_recall', g_recall.item()/ iteration))
-        else:
-            g_logs.append(('eval_psnr', g_psnr.item() / iteration))
-            g_logs.append(('eval_mae', g_mae.item() / iteration))
+
+        return iteration, g_precision, g_recall, g_psnr, g_mae
+
+
 
     def test(self):
         self.edge_model.eval()
