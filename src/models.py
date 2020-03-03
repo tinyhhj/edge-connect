@@ -49,7 +49,7 @@ class BaseModel(nn.Module):
     def save(self,*args):
         print('\nsaving %s...\n' % self.name)
         torch.save({
-            'iteration': self.iteration,
+            'iteration': int(args[0]),
             'generator': self.generator.state_dict()
         }, self.filename(*args)+'_gen.pth')
 
