@@ -219,21 +219,22 @@ class EdgeConnect():
                 # evaluate model at checkpoints
                 if self.config.EVAL_INTERVAL and iteration % self.config.EVAL_INTERVAL == 0:
                     size = self.config.BATCH_SIZE
-                    result = (torch.tensor(0),)*5
+                    result = (1,)+(torch.tensor(0),)*4
                     while size >= 1:
                         print(f'\nstart eval...{size}\n')
                         try:
                             #iteration, g_precision, g_recall, g_psnr, g_mae
                             result = self.eval(logs)
                             break
-                        except:
+                        except Exception as e:
+                            print(e)
                             size = size // 2
                     if model == 1:
-                        logs.append(('eval_precision', result[1].item() / iteration))
-                        logs.append(('eval_recall', result[2].item() / iteration))
+                        logs.append(('eval_precision', result[1].item() / result[0]))
+                        logs.append(('eval_recall', result[2].item() / result[0]))
                     else:
-                        logs.append(('eval_psnr', result[3].item() / iteration))
-                        logs.append(('eval_mae', result[4].item() / iteration))
+                        logs.append(('eval_psnr', result[3].item() / result[0]))
+                        logs.append(('eval_mae', result[4].item() / result[0]))
 
 
                 # save model at checkpoints
