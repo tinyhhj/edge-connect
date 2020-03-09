@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from .networks import InpaintGenerator, EdgeGenerator, Discriminator
 from .loss import AdversarialLoss, PerceptualLoss, StyleLoss
+from collections import OrderedDict
 
 
 class BaseModel(nn.Module):
@@ -32,6 +33,15 @@ class BaseModel(nn.Module):
             else:
                 data = torch.load(checkpoint_gen[0], map_location=lambda storage, loc: storage)
 
+            if len(self.config.GPU) > 1:
+                #should module
+                new_state_dict= OrderedDict()
+                if not list(data['generator'].items())[0][0].startswith('module.'):
+                    for k,v in data['generator'].items():
+                        name = 'module.' + k
+                        new_state_dict[name] = v
+                    data['generator'] = new_state_dict
+
             self.generator.load_state_dict(data['generator'])
             self.iteration = data['iteration']
 
@@ -43,6 +53,14 @@ class BaseModel(nn.Module):
                 data = torch.load(checkpoint_dis[0])
             else:
                 data = torch.load(checkpoint_dis[0], map_location=lambda storage, loc: storage)
+            if len(self.config.GPU) > 1:
+                #should module
+                new_state_dict= OrderedDict()
+                if not list(data['discriminator'].items())[0][0].startswith('module.'):
+                    for k,v in data['discriminator'].items():
+                        name = 'module.' + k
+                        new_state_dict[name] = v
+                    data['discriminator'] = new_state_dict
 
             self.discriminator.load_state_dict(data['discriminator'])
 
