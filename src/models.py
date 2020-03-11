@@ -41,7 +41,14 @@ class BaseModel(nn.Module):
                         name = 'module.' + k
                         new_state_dict[name] = v
                     data['generator'] = new_state_dict
-
+            else:
+                # should not module
+                new_state_dict = OrderedDict()
+                if list(data['generator'].items())[0][0].startswith('module.'):
+                    for k, v in data['generator'].items():
+                        name = k[len('module.'):]
+                        new_state_dict[name] = v
+                    data['generator'] = new_state_dict
             self.generator.load_state_dict(data['generator'])
             self.iteration = data['iteration']
 
@@ -59,6 +66,14 @@ class BaseModel(nn.Module):
                 if not list(data['discriminator'].items())[0][0].startswith('module.'):
                     for k,v in data['discriminator'].items():
                         name = 'module.' + k
+                        new_state_dict[name] = v
+                    data['discriminator'] = new_state_dict
+            else:
+                # should not module
+                new_state_dict = OrderedDict()
+                if list(data['discriminator'].items())[0][0].startswith('module.'):
+                    for k, v in data['discriminator'].items():
+                        name = k[len('module.'):]
                         new_state_dict[name] = v
                     data['discriminator'] = new_state_dict
 

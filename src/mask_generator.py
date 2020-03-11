@@ -140,7 +140,7 @@ def test2():
     plt.imshow(rgb)
     print(np.unique(rgb), rgb.dtype)
     plt.show()
-test()
+# test()
 
 
 

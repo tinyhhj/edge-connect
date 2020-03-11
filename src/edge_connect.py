@@ -281,8 +281,8 @@ class EdgeConnect():
 
                 # metrics
                 precision, recall = self.edgeacc(edges * masks, outputs * masks)
-                g_precision += precision
-                g_recall += recall
+                g_precision += precision.item()
+                g_recall += recall.item()
                 logs.append(('eval_precision', precision.item()))
                 logs.append(('eval_recall', recall.item()))
 
@@ -296,8 +296,8 @@ class EdgeConnect():
                 # metrics
                 psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
                 mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                g_psnr += psnr
-                g_mae += mae
+                g_psnr += psnr.item()
+                g_mae += mae.item()
                 logs.append(('eval_psnr', psnr.item()))
                 logs.append(('eval_mae', mae.item()))
 
@@ -314,8 +314,8 @@ class EdgeConnect():
                 # metrics
                 psnr = self.psnr(self.postprocess(images), self.postprocess(outputs_merged))
                 mae = (torch.sum(torch.abs(images - outputs_merged)) / torch.sum(images)).float()
-                g_psnr += psnr
-                g_mae += mae
+                g_psnr += psnr.item()
+                g_mae += mae.item()
                 logs.append(('eval_psnr', psnr.item()))
                 logs.append(('eval_mae', mae.item()))
 
