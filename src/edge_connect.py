@@ -32,12 +32,12 @@ class EdgeConnect():
         self.edgeacc = EdgeAccuracy(config.EDGE_THRESHOLD).to(config.DEVICE)
 
         self.transforms = {'train': transforms.Compose([
-            transforms.Resize(256),
+            # transforms.Resize(config.INPUT_SIZE),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor()
         ]),
                            'test': transforms.Compose([
-                               transforms.Resize(256),
+                               # transforms.Resize(config.INPUT_SIZE),
                                transforms.ToTensor()
                            ])}
 
@@ -91,7 +91,7 @@ class EdgeConnect():
         train_loader = DataLoader(
             dataset=self.train_dataset,
             batch_size=self.config.BATCH_SIZE,
-            num_workers=4,
+            num_workers=0,
             drop_last=True,
             shuffle=True
         )

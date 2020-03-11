@@ -10,6 +10,8 @@ from PIL import Image
 from skimage.feature import canny
 from skimage.color import rgb2gray, gray2rgb
 from .utils import create_mask
+from .mask_generator import MaskGenerator
+import matplotlib.pyplot as plt
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -29,6 +31,8 @@ class Dataset(torch.utils.data.Dataset):
         self.mask = config.MASK
         self.nms = config.NMS
         self.transform = transform
+        self.mask_generator = MaskGenerator(config.INPUT_SIZE,43,)
+        self.mask_generator.files = self.mask_data
 
         # in test mode, there's a one-to-one relationship between mask and image
         # masks are loaded non random
@@ -63,8 +67,8 @@ class Dataset(torch.utils.data.Dataset):
             img = gray2rgb(img)
 
         # # resize/crop if needed
-        # if size != 0:
-        #     img = self.resize(img, size, size)
+        if size != 0:
+            img = self.resize(img, size, size)
 
         # create grayscale image
         img_gray = rgb2gray(img)
@@ -72,9 +76,9 @@ class Dataset(torch.utils.data.Dataset):
         # load mask
         mask = self.load_mask(img, index)
 
-        if img_gray.shape[0] != mask.shape[0] or img_gray.shape[1] != mask.shape[1]:
-            img_gray = self.resize(img_gray,256,256)
-            mask = self.resize(mask,256,256)
+        # if img_gray.shape[0] != mask.shape[0] or img_gray.shape[1] != mask.shape[1]:
+        #     img_gray = self.resize(img_gray,256,256)
+        #     mask = self.resize(mask,256,256)
 
         # load edge
         edge = self.load_edge(img_gray, index, mask)
@@ -128,9 +132,12 @@ class Dataset(torch.utils.data.Dataset):
         # pre masked mode + external + random block:
         if mask_type == 7:
             # exist pretrained mask
-            if name in self.zigbang_mask_data:
+            if name in self.zigbang_mask_data and np.random.binomial(1, 0.3) == 1:
                 #print('exists')
-                return np.array(Image.open(self.zigbang_mask_data[name]))
+                mask = np.array(Image.open(self.zigbang_mask_data[name]))
+                mask = self.resize(mask, imgh, imgw)
+                mask = (mask > 0).astype(np.uint8) * 255
+                return mask
             mask_type = 4
 
 
@@ -157,16 +164,19 @@ class Dataset(torch.utils.data.Dataset):
 
         # external
         if mask_type == 3:
-            mask_index = random.randint(0, len(self.mask_data) - 1)
-            mask = np.array(Image.open(self.mask_data[mask_index]))
+            # mask_index = random.randint(0, len(self.mask_data) - 1)
+            # mask = np.array(Image.open(self.mask_data[mask_index]))
             # mask = self.resize(mask, imgh, imgw)
-            mask = (mask > 0).astype(np.uint8) * 255       # threshold due to interpolation
-            return mask
+            # mask = (mask > 0).astype(np.uint8) * 255       # threshold due to interpolation
+            mask = self.mask_generator.load_mask() * 255
+            mask = self.resize(mask, imgh, imgw)
+            mask = (1 - (mask >0).astype(np.uint8))* 255
+            return mask[:,:,0]
 
         # test mode: load mask non random
         if mask_type == 6:
             mask = np.array(Image.open(self.mask_data[index]))
-            # mask = self.resize(mask, imgh, imgw, centerCrop=False)
+            mask = self.resize(mask, imgh, imgw, centerCrop=False)
             mask = rgb2gray(mask)
             mask = (mask > 0).astype(np.uint8) * 255
             return mask
@@ -181,14 +191,14 @@ class Dataset(torch.utils.data.Dataset):
     def resize(self, img, height, width, centerCrop=True):
         imgh, imgw = img.shape[0:2]
 
-        if centerCrop and imgh != imgw:
-            # center crop
-            side = np.minimum(imgh, imgw)
-            j = (imgh - side) // 2
-            i = (imgw - side) // 2
-            img = img[j:j + side, i:i + side, ...]
+        # if centerCrop and imgh != imgw:
+        #     # center crop
+        #     side = np.minimum(imgh, imgw)
+        #     j = (imgh - side) // 2
+        #     i = (imgw - side) // 2
+        #     img = img[j:j + side, i:i + side, ...]
 
-        img = np.array(Image.fromarray(img).resize((height, width)))
+        img = np.array(Image.fromarray(img).resize((width, height)))
 
         return img
 
