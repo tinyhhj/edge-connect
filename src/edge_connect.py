@@ -233,8 +233,8 @@ class EdgeConnect():
                         logs.append(('eval_precision', result[1].item() / result[0]))
                         logs.append(('eval_recall', result[2].item() / result[0]))
                     else:
-                        logs.append(('eval_psnr', result[3].item() / result[0]))
-                        logs.append(('eval_mae', result[4].item() / result[0]))
+                        logs.append(('eval_psnr', result[3] / result[0]))
+                        logs.append(('eval_mae', result[4] / result[0]))
 
 
                 # save model at checkpoints
