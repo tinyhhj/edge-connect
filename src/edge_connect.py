@@ -8,6 +8,9 @@ from .utils import Progbar, create_dir, stitch_images, imsave
 from .metrics import PSNR, EdgeAccuracy
 from torchvision import transforms
 from collections import OrderedDict
+import random
+from skimage.feature import canny
+from datetime import datetime
 
 
 class EdgeConnect():
@@ -452,6 +455,82 @@ class EdgeConnect():
         create_dir(path)
         print('\nsaving sample ' + name)
         images.save(name)
+    def inference(self, images,masks,grays):
+        self.edge_model.eval()
+        self.inpaint_model.eval()
+
+        model = self.config.MODEL
+        create_dir(self.results_path)
+
+        mt = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor(),
+
+        ])
+        tensor_img = mt(images)
+        tensor_mask = mt(masks)
+        tensor_gray = mt(grays)
+
+        def get_edge(gray,mask):
+            # in test mode images are masked (with masked regions),
+            # using 'mask' parameter prevents canny to detect edges for the masked regions
+            sigma = self.config.SIGMA
+            mask = (1 - mask).astype(np.bool)
+
+            # no edge
+            if sigma == -1:
+                return np.zeros(gray.shape).astype(np.float)
+
+            # random sigma
+            if sigma == 0:
+                sigma = random.randint(1, 4)
+
+            return canny(gray, sigma=sigma, mask=mask).astype(np.float)
+
+        edges = get_edge(tensor_gray.squeeze(0).numpy(), tensor_mask.squeeze(0).numpy())
+        tensor_edges = torch.from_numpy(edges).float().unsqueeze(0)
+
+
+        index = 1
+        name = f'{datetime.today().strftime("%Y_%m_%d_%H_%M")}_{images.filename}'
+        images, images_gray, edges, masks = self.cuda(tensor_img.unsqueeze(0),
+                                                      tensor_gray.unsqueeze(0),
+                                                      tensor_edges.unsqueeze(0),
+                                                      tensor_mask.unsqueeze(0))
+
+        # edge model
+        if model == 1:
+            outputs = self.edge_model(images_gray, edges, masks)
+            outputs_merged = (outputs * masks) + (edges * (1 - masks))
+
+        # inpaint model
+        elif model == 2:
+            outputs = self.inpaint_model(images, edges, masks)
+            outputs_merged = (outputs * masks) + (images * (1 - masks))
+
+        # inpaint with edge model / joint model
+        else:
+            edges = self.edge_model(images_gray, edges, masks).detach()
+            outputs = self.inpaint_model(images, edges, masks)
+            outputs_merged = (outputs * masks) + (images * (1 - masks))
+
+        output = self.postprocess(outputs_merged)[0]
+        path = os.path.join(self.results_path, name)
+        print(index, name)
+
+        imsave(output, path)
+
+        if self.debug:
+            edges = self.postprocess(1 - edges)[0]
+            masked = self.postprocess(images * (1 - masks) + masks)[0]
+            fname, fext = name.split('.')
+
+            imsave(edges, os.path.join(self.results_path, fname + '_edge.' + fext))
+            imsave(masked, os.path.join(self.results_path, fname + '_masked.' + fext))
+
+        print('\nEnd inferencing....')
+
+        return transforms.ToPILImage()(outputs_merged.squeeze(0).cpu())
 
     def log(self, logs):
         with open(self.log_file, 'a') as f:

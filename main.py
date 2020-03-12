@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import argparse
 from shutil import copyfile
-from src.config import Config
-from src.edge_connect import EdgeConnect
+from .src.config import Config
+from .src.edge_connect import EdgeConnect
 
 
 def main(mode=None):
@@ -64,6 +64,11 @@ def main(mode=None):
     elif config.MODE ==3 :
         print('\nstart eval...\n')
         model.eval()
+    elif config.MODE == 4:
+        print('\nstart inference...\n')
+        # model.eval()
+
+    return model
 
 
 
@@ -126,6 +131,9 @@ def load_config(mode=None):
     # eval mode
     elif mode == 3:
         config.MODE = 3
+        config.MODEL = args.model if args.model is not None else 3
+    elif mode == 4:
+        config.MODE = 4
         config.MODEL = args.model if args.model is not None else 3
 
 
