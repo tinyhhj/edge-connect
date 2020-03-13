@@ -456,7 +456,7 @@ class EdgeConnect():
         print('\nsaving sample ' + name)
         images.save(name)
     def inference(self, images,masks,grays):
-        input_size = int(os.getenv('INPUT_SIZE')) or 512
+        input_size = int(os.getenv('INPUT_SIZE') or 512)
         self.edge_model.eval()
         self.inpaint_model.eval()
 
