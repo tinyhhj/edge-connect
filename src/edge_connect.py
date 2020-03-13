@@ -456,6 +456,7 @@ class EdgeConnect():
         print('\nsaving sample ' + name)
         images.save(name)
     def inference(self, images,masks,grays):
+        input_size = int(os.getenv('INPUT_SIZE')) or 512
         self.edge_model.eval()
         self.inpaint_model.eval()
 
@@ -463,9 +464,8 @@ class EdgeConnect():
         create_dir(self.results_path)
 
         mt = transforms.Compose([
-            transforms.Resize((512, 512)),
+            transforms.Resize((input_size, input_size)),
             transforms.ToTensor(),
-
         ])
         tensor_img = mt(images)
         tensor_mask = mt(masks)
