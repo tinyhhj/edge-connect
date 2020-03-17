@@ -1,2 +1,2 @@
-from main import main
+from src.main import main
 main(mode=1)

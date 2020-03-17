@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import argparse
 from shutil import copyfile
-from .src.config import Config
-from .src.edge_connect import EdgeConnect
+from .config import Config
+from .edge_connect import EdgeConnect
 
 
 def main(mode=None):
@@ -99,7 +99,7 @@ def load_config(mode=None):
 
     # copy config template if does't exist
     if not os.path.exists(config_path):
-        copyfile('./config.yml.example', config_path)
+        copyfile('../config.yml.example', config_path)
 
     # load config file
     config = Config(config_path)
