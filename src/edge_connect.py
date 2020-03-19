@@ -55,9 +55,9 @@ class EdgeConnect():
             self.val_dataset = Dataset(config, config.VAL_FLIST, config.VAL_EDGE_FLIST, config.VAL_MASK_FLIST,
                                        config.ZIGBANG_VAL_MASK_FLIST, augment=False, training=True,transform = self.transforms['test'])
             self.sample_iterator = self.val_dataset.create_iterator(config.SAMPLE_SIZE)
-
+        date = datetime.today().strftime("%Y/%m/%d")
         self.samples_path = os.path.join(config.PATH, 'samples')
-        self.results_path = os.path.join(config.PATH, 'results')
+        self.results_path = os.path.join(config.PATH,date, 'results')
         self.checkpoints_path = os.path.join(config.PATH, 'cp')
 
         if config.RESULTS is not None:
@@ -455,21 +455,12 @@ class EdgeConnect():
         create_dir(path)
         print('\nsaving sample ' + name)
         images.save(name)
-    def inference(self, images,masks,grays):
-        input_size = int(os.getenv('INPUT_SIZE') or 512)
+    def inference(self, tensor_img,tensor_mask,tensor_gray):
         self.edge_model.eval()
         self.inpaint_model.eval()
 
         model = self.config.MODEL
         create_dir(self.results_path)
-
-        mt = transforms.Compose([
-            transforms.Resize((input_size, input_size)),
-            transforms.ToTensor(),
-        ])
-        tensor_img = mt(images)
-        tensor_mask = mt(masks)
-        tensor_gray = mt(grays)
 
         def get_edge(gray,mask):
             # in test mode images are masked (with masked regions),
@@ -492,7 +483,7 @@ class EdgeConnect():
 
 
         index = 1
-        name = f'{datetime.today().strftime("%Y_%m_%d_%H_%M")}_{images.filename}'
+        name = f'{datetime.today().strftime("%H_%M")}_{tensor_img.filename}'
         images, images_gray, edges, masks = self.cuda(tensor_img.unsqueeze(0),
                                                       tensor_gray.unsqueeze(0),
                                                       tensor_edges.unsqueeze(0),

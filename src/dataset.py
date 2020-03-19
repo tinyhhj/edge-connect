@@ -31,7 +31,7 @@ class Dataset(torch.utils.data.Dataset):
         self.mask = config.MASK
         self.nms = config.NMS
         self.transform = transform
-        self.mask_generator = MaskGenerator(config.INPUT_SIZE,43,)
+        self.mask_generator = MaskGenerator(config.INPUT_SIZE)
         self.mask_generator.files = self.mask_data
 
         # in test mode, there's a one-to-one relationship between mask and image
